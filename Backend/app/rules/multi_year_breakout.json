@@ -1,0 +1,27 @@
+{
+  "id": "multi_year_breakout",
+  "name": "Multi-Year Breakout",
+  "timeframe_label": "3 years / weekly candles",
+  "description": "Long-term breakout candidates emerging from prolonged consolidation patterns such as a Cup & Handle, Rounding Bottom, Ascending Triangle, or a Darvas Box. Price is near a multi-year resistance that has been tested repeatedly. For the breakout to be considered genuine, the breakout week's volume must be significantly higher than the 50-day average volume, proving institutional money (MF / FII / DII) is driving the move.",
+  "data": {
+    "period": "3y",
+    "interval": "weekly_from_daily",
+    "min_weeks": 50,
+    "_comment": "3 years of DAILY OHLCV is fetched (and reused from the NSE 1Day store when available), then resampled to weekly candles for resistance analysis. The daily volume is kept so the 50-day average volume confirmation can be computed accurately."
+  },
+  "resistance": {
+    "max_distance_from_high_pct": 3.0,
+    "test_zone_pct": 2.5,
+    "min_distinct_tests": 2,
+    "test_grouping_weeks": 3,
+    "_comment": "Price must be within max_distance_from_high_pct of the 3-year high. A 'test' is a week whose high is within test_zone_pct of the highest high. Tests within test_grouping_weeks count as one touch event. At least min_distinct_tests separate touches are required."
+  },
+  "volume_confirmation": {
+    "enabled": true,
+    "average_window_days": 50,
+    "recent_lookback_days": 10,
+    "min_breakout_volume_multiple": 1.5,
+    "require_for_match": false,
+    "_comment": "Baseline = average daily volume over the 50 days preceding the most recent recent_lookback_days. Recent = the highest daily volume in the last recent_lookback_days (i.e. the breakout window). volume_ratio = recent / baseline. Confirmed when volume_ratio >= min_breakout_volume_multiple. When require_for_match is true, unconfirmed candidates are dropped."
+  }
+}

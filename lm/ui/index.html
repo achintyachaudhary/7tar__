@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock AI — Analysis</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --border: #2d3748;
+    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950;
+    --red: #f85149; --amber: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.6 "Segoe UI", system-ui, sans-serif; min-height: 100vh; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  header h1 { font-size: 22px; font-weight: 600; }
+  header .badge { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; }
+  #healthDot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 5px; }
+
+  .searchbox { position: relative; margin-bottom: 10px; }
+  .searchbox input { width: 100%; padding: 14px 18px; font-size: 16px; background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; outline: none; }
+  .searchbox input:focus { border-color: var(--accent); }
+  #suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 10; background: var(--panel2);
+    border: 1px solid var(--border); border-radius: 10px; margin-top: 4px; overflow: hidden; display: none; }
+  #suggestions div { padding: 10px 16px; cursor: pointer; display: flex; justify-content: space-between; }
+  #suggestions div:hover, #suggestions div.active { background: #263042; }
+  #suggestions .sym { font-weight: 600; color: var(--accent); }
+  #suggestions .meta { color: var(--muted); font-size: 13px; }
+
+  .qrow { display: flex; gap: 10px; margin-bottom: 24px; }
+  .qrow input { flex: 1; padding: 11px 16px; background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; outline: none; font-size: 14px; }
+  button { padding: 11px 22px; background: var(--accent); color: #0d1117; font-weight: 600; font-size: 14px;
+    border: none; border-radius: 10px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+  button.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+
+  #status { color: var(--muted); margin: 20px 0; display: none; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+  .kv { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
+  .kv span:first-child { color: var(--muted); }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 18px; }
+  .chip { background: var(--panel2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 14px; font-size: 13px; }
+  .chip.clickable { cursor: pointer; color: var(--accent); }
+  .chip.clickable:hover { border-color: var(--accent); }
+  .quick { color: var(--muted); font-size: 13px; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .tools { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; }
+  .tools summary { cursor: pointer; color: var(--text); font-size: 14px; font-weight: 600; }
+  .toolbtns { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  .checkline { font: 13px Consolas, monospace; padding: 3px 0; }
+  #toolsOut { margin-top: 4px; }
+
+  #chart { width: 100%; height: 180px; margin-bottom: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+
+  .report { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-bottom: 18px; }
+  .report h2 { font-size: 17px; color: var(--accent); margin: 18px 0 8px; }
+  .report h2:first-child { margin-top: 0; }
+  .report ul { margin: 6px 0 6px 22px; }
+  .report p { margin: 6px 0; }
+  .report strong { color: #fff; }
+
+  details { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  .newsitem { border-top: 1px solid var(--border); padding: 10px 0; font-size: 13px; }
+  .newsitem .t { font-weight: 600; }
+  .newsitem .s { color: var(--muted); }
+  .empty { color: var(--muted); font-style: italic; }
+  pre.think { white-space: pre-wrap; color: var(--muted); font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📈 Stock AI</h1>
+    <span class="badge"><span id="healthDot"></span><span id="healthText">checking…</span></span>
+  </header>
+
+  <div class="searchbox">
+    <input id="symbolInput" placeholder="Search a stock — symbol or company name (e.g. RELIANCE, TCS)…" autocomplete="off">
+    <div id="suggestions"></div>
+  </div>
+
+  <div class="qrow">
+    <input id="questionInput" placeholder="Optional question (e.g. Is the recent fall a buying opportunity?) — or ask without a stock for general RAG">
+    <button id="analyzeBtn" onclick="analyze()">🔍 Analyze</button>
+    <button class="secondary" onclick="askFreeform()">Ask</button>
+  </div>
+
+  <div class="quick">Try one:
+    <span class="chip clickable" onclick="quickPick('RELIANCE.NS')">RELIANCE.NS</span>
+    <span class="chip clickable" onclick="quickPick('TCS.NS')">TCS.NS</span>
+    <span class="chip clickable" onclick="quickPick('INFY.NS')">INFY.NS</span>
+    <span class="chip clickable" onclick="quickPick('HDFCBANK.NS')">HDFCBANK.NS</span>
+    <span class="chip clickable" onclick="quickPick('TATAMOTORS.NS')">TATAMOTORS.NS</span>
+  </div>
+
+  <details class="tools" open>
+    <summary>⚙️ Setup &amp; tools — run the maintenance scripts from here</summary>
+    <div class="toolbtns">
+      <button class="secondary" id="btnCheck" onclick="checkComponents()">🩺 Check components</button>
+      <button class="secondary" id="btnSeed" onclick="loadSampleNews()">📰 Load sample news into Qdrant</button>
+    </div>
+    <div id="toolsOut" class="empty">Buttons above replace <code>scripts/check_services.py</code> and <code>scripts/ingest_news.py</code>.</div>
+  </details>
+
+  <div id="status"></div>
+  <div id="results" style="display:none">
+    <div class="chips" id="chips"></div>
+    <canvas id="chart" style="display:none"></canvas>
+    <div class="grid" id="dataCards"></div>
+    <div class="report" id="report"></div>
+    <details id="newsBox"><summary>News / context used by the model</summary><div id="newsList"></div></details>
+    <details id="thinkBox"><summary>Model reasoning (chain of thought)</summary><pre class="think" id="thinkText"></pre></details>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let selectedSymbol = null;
+let debounceTimer = null;
+
+// ---------- health ----------
+fetch('/api/health').then(r => r.json()).then(h => {
+  const ok = h.ollama && h.qdrant && h.database !== 'none';
+  $('healthDot').style.background = ok ? 'var(--green)' : (h.ollama ? 'var(--amber)' : 'var(--red)');
+  $('healthText').textContent = `${h.model} · qdrant ${h.qdrant ? 'up' : 'DOWN'} · db: ${h.database}`;
+}).catch(() => { $('healthText').textContent = 'API unreachable'; $('healthDot').style.background = 'var(--red)'; });
+
+// ---------- autocomplete ----------
+$('symbolInput').addEventListener('input', e => {
+  selectedSymbol = null;
+  clearTimeout(debounceTimer);
+  const q = e.target.value.trim();
+  if (q.length < 2) { $('suggestions').style.display = 'none'; return; }
+  debounceTimer = setTimeout(async () => {
+    const res = await fetch('/api/stocks/search?q=' + encodeURIComponent(q));
+    const items = await res.json();
+    const box = $('suggestions');
+    box.innerHTML = '';
+    items.forEach(it => {
+      const d = document.createElement('div');
+      d.innerHTML = `<span class="sym">${it.symbol}</span><span class="meta">${it.company_name || ''} ${it.sector ? '· ' + it.sector : ''}</span>`;
+      d.onclick = () => { selectedSymbol = it.symbol; $('symbolInput').value = it.symbol; box.style.display = 'none'; };
+      box.appendChild(d);
+    });
+    box.style.display = items.length ? 'block' : 'none';
+  }, 250);
+});
+$('symbolInput').addEventListener('keydown', e => { if (e.key === 'Enter') { $('suggestions').style.display = 'none'; analyze(); } });
+$('questionInput').addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+document.addEventListener('click', e => { if (!e.target.closest('.searchbox')) $('suggestions').style.display = 'none'; });
+
+// ---------- helpers ----------
+function setStatus(msg) {
+  const s = $('status');
+  if (!msg) { s.style.display = 'none'; return; }
+  s.style.display = 'block';
+  s.innerHTML = '<span class="spinner"></span>' + msg;
+}
+function fmt(v, suffix = '') { return (v === null || v === undefined) ? '—' : (typeof v === 'number' ? v.toLocaleString('en-IN', {maximumFractionDigits: 2}) : v) + suffix; }
+function retClass(v) { return v > 0 ? 'pos' : (v < 0 ? 'neg' : ''); }
+function kv(label, value, cls = '') { return `<div class="kv"><span>${label}</span><span class="${cls}">${value}</span></div>`; }
+
+// minimal markdown renderer (headings, bold, lists, paragraphs)
+function md(text) {
+  const esc = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lines = esc.split('\n');
+  let html = '', inList = false;
+  for (let line of lines) {
+    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>');
+    if (/^#{1,3}\s/.test(line)) { if (inList) { html += '</ul>'; inList = false; } html += '<h2>' + line.replace(/^#{1,3}\s*/, '') + '</h2>'; }
+    else if (/^\s*[-*]\s/.test(line)) { if (!inList) { html += '<ul>'; inList = true; } html += '<li>' + line.replace(/^\s*[-*]\s*/, '') + '</li>'; }
+    else if (/^\s*\d+\.\s/.test(line)) { if (!inList) { html += '<ul>'; inList = true; } html += '<li>' + line.replace(/^\s*\d+\.\s*/, '') + '</li>'; }
+    else if (line.trim() === '') { if (inList) { html += '</ul>'; inList = false; } }
+    else { if (inList) { html += '</ul>'; inList = false; } html += '<p>' + line + '</p>'; }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function drawChart(prices) {
+  const canvas = $('chart');
+  if (!prices || prices.length < 2) { canvas.style.display = 'none'; return; }
+  canvas.style.display = 'block';
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+  const W = canvas.clientWidth, H = canvas.clientHeight, pad = 14;
+  const closes = prices.map(p => p.close).filter(c => c != null);
+  const min = Math.min(...closes), max = Math.max(...closes), range = max - min || 1;
+  const up = closes[closes.length - 1] >= closes[0];
+  ctx.strokeStyle = up ? '#3fb950' : '#f85149'; ctx.lineWidth = 2; ctx.beginPath();
+  closes.forEach((c, i) => {
+    const x = pad + i / (closes.length - 1) * (W - 2 * pad);
+    const y = H - pad - (c - min) / range * (H - 2 * pad);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.fillStyle = '#8b949e'; ctx.font = '11px Segoe UI';
+  ctx.fillText(prices[0].trade_date, pad, H - 2);
+  ctx.fillText(prices[prices.length - 1].trade_date, W - 90, H - 2);
+  ctx.fillText('₹' + max.toLocaleString('en-IN'), pad, 12);
+}
+
+// ---------- setup & tools ----------
+function quickPick(sym) {
+  selectedSymbol = sym;
+  $('symbolInput').value = sym;
+  $('suggestions').style.display = 'none';
+  analyze();
+}
+
+async function checkComponents() {
+  const btn = $('btnCheck'); btn.disabled = true;
+  $('toolsOut').innerHTML = '<span class="spinner"></span> running checks (embedding probe may take a moment)…';
+  try {
+    const res = await fetch('/api/admin/check');
+    if (!res.ok) throw new Error(res.statusText);
+    const checks = await res.json();
+    $('toolsOut').innerHTML = checks.map(c =>
+      `<div class="checkline ${c.ok ? 'pos' : 'neg'}">${c.ok ? '✔' : '✖'} <b>${c.component}</b> — ${c.detail}</div>`
+    ).join('');
+  } catch (err) {
+    $('toolsOut').innerHTML = `<span class="neg">Error: ${err.message}</span>`;
+  } finally { btn.disabled = false; }
+}
+
+async function loadSampleNews() {
+  const btn = $('btnSeed'); btn.disabled = true;
+  $('toolsOut').innerHTML = '<span class="spinner"></span> embedding and storing sample articles…';
+  try {
+    const res = await fetch('/api/admin/ingest-samples', {method: 'POST'});
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const r = await res.json();
+    $('toolsOut').innerHTML =
+      `<div class="checkline pos">✔ stored ${r.stored} sample articles: ${r.tickers.join(', ')}</div>` +
+      `<div class="checkline">Re-clicking updates the same documents (no duplicates). Add your own via scripts/ingest_news.py --file or POST /api/news/ingest.</div>`;
+  } catch (err) {
+    $('toolsOut').innerHTML = `<span class="neg">Error: ${err.message}</span>`;
+  } finally { btn.disabled = false; }
+}
+
+// ---------- main actions ----------
+async function analyze() {
+  const symbol = (selectedSymbol || $('symbolInput').value).trim().toUpperCase();
+  if (!symbol) { askFreeform(); return; }
+  const question = $('questionInput').value.trim() || null;
+
+  $('analyzeBtn').disabled = true;
+  $('results').style.display = 'none';
+  setStatus(`Gathering data and generating analysis for <b>${symbol}</b>… (local LLM, can take a minute)`);
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({symbol, question})
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    render(await res.json());
+  } catch (err) {
+    setStatus('');
+    $('results').style.display = 'block';
+    $('chips').innerHTML = ''; $('dataCards').innerHTML = ''; $('chart').style.display = 'none';
+    $('report').innerHTML = `<p class="neg">Error: ${err.message}</p>`;
+    $('newsBox').style.display = 'none'; $('thinkBox').style.display = 'none';
+  } finally { $('analyzeBtn').disabled = false; }
+}
+
+async function askFreeform() {
+  const question = $('questionInput').value.trim();
+  if (!question) { setStatus(''); alert('Type a question first (or pick a stock and press Analyze).'); return; }
+  $('analyzeBtn').disabled = true;
+  $('results').style.display = 'none';
+  setStatus('Searching documents and asking the model…');
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question})
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+    const r = await res.json();
+    setStatus('');
+    $('results').style.display = 'block';
+    $('chips').innerHTML = ''; $('dataCards').innerHTML = ''; $('chart').style.display = 'none';
+    $('report').innerHTML = md(r.answer || '(empty answer)');
+    renderNews(r.news_used); renderThink(r.reasoning);
+  } catch (err) {
+    setStatus(''); $('results').style.display = 'block';
+    $('report').innerHTML = `<p class="neg">Error: ${err.message}</p>`;
+  } finally { $('analyzeBtn').disabled = false; }
+}
+
+function render(r) {
+  setStatus('');
+  $('results').style.display = 'block';
+  const d = r.data || {}, p = d.profile || {}, s = d.snapshot || {}, ps = d.price_summary;
+
+  // chips
+  const chips = [];
+  chips.push(`<span class="chip"><b>${r.symbol}</b> ${p.company_name || s.company_name || ''}</span>`);
+  if (p.sector) chips.push(`<span class="chip">${p.sector}</span>`);
+  if (ps) chips.push(`<span class="chip">₹${fmt(ps.last_close)} <span class="${retClass(ps.return_1m_pct)}">${fmt(ps.return_1m_pct)}% 1M</span></span>`);
+  $('chips').innerHTML = chips.join('');
+
+  drawChart(r.prices);
+
+  // data cards
+  let cards = '';
+  cards += `<div class="card"><h3>Valuation</h3>` +
+    kv('Market cap', fmt(p.market_cap_cr || s.market_cap_cr) + ' Cr') +
+    kv('PE ratio', fmt(s.pe_ratio)) + kv('ROCE', fmt(s.roce_pct, '%')) +
+    kv('Score', fmt(p.overall_score)) + `</div>`;
+  if (ps) cards += `<div class="card"><h3>Returns</h3>` +
+    kv('1 week', fmt(ps.return_1w_pct, '%'), retClass(ps.return_1w_pct)) +
+    kv('1 month', fmt(ps.return_1m_pct, '%'), retClass(ps.return_1m_pct)) +
+    kv('3 months', fmt(ps.return_3m_pct, '%'), retClass(ps.return_3m_pct)) +
+    kv('1 year', fmt(ps.return_1y_pct, '%'), retClass(ps.return_1y_pct)) +
+    kv('52w range', fmt(ps.low_52w) + ' – ' + fmt(ps.high_52w)) + `</div>`;
+  const h = d.holdings;
+  if (h) cards += `<div class="card"><h3>Shareholding</h3>` +
+    kv('Promoter', fmt(h.promoter_pct, '%')) + kv('FII', fmt(h.fii_pct, '%')) +
+    kv('DII', fmt(h.dii_pct, '%')) + kv('Public', fmt(h.public_pct, '%')) + `</div>`;
+  const q = (d.financials || {}).quarterly || [];
+  if (q.length) cards += `<div class="card"><h3>Recent quarters (Rev / Profit Cr)</h3>` +
+    q.slice(0, 4).map(x => kv(x.period_label, `${fmt(x.revenue_cr)} / ${fmt(x.profit_cr)}`)).join('') + `</div>`;
+  $('dataCards').innerHTML = cards;
+
+  $('report').innerHTML = md(r.report || '(empty report)');
+  renderNews(r.news_used); renderThink(r.reasoning);
+}
+
+function renderNews(news) {
+  const box = $('newsBox');
+  if (!news || !news.length) {
+    box.style.display = 'block';
+    $('newsList').innerHTML = '<p class="empty">No documents in Qdrant matched — run scripts/ingest_news.py to add news.</p>';
+    return;
+  }
+  box.style.display = 'block';
+  $('newsList').innerHTML = news.map(n =>
+    `<div class="newsitem"><div class="t">[${n.ticker || '?'}] ${n.title || ''} <span class="s">(score ${n.score})</span></div>
+     <div>${(n.text || '').slice(0, 300)}…</div><div class="s">${n.source || ''} ${n.date || ''}</div></div>`).join('');
+}
+
+function renderThink(reasoning) {
+  const box = $('thinkBox');
+  if (!reasoning) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  $('thinkText').textContent = reasoning;
+}
+</script>
+</body>
+</html>

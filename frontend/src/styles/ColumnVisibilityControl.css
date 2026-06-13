@@ -1,0 +1,103 @@
+.column-visibility-control {
+  position: relative;
+  display: inline-block;
+}
+
+.column-visibility-btn {
+  padding: 0.5rem 0.875rem;
+  background: var(--bg-card, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 6px;
+  color: var(--text-primary, #fff);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.column-visibility-btn:hover {
+  background: var(--bg-hover, #2a2a2a);
+  border-color: var(--accent-color, #4a9eff);
+}
+
+.column-visibility-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--bg-card, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 220px;
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.column-visibility-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color, #333);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.column-visibility-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.column-visibility-actions .link-btn {
+  background: none;
+  border: none;
+  color: var(--accent-color, #4a9eff);
+  cursor: pointer;
+  padding: 0;
+  font-size: inherit;
+}
+
+.column-visibility-actions .link-btn:hover {
+  text-decoration: underline;
+}
+
+.column-visibility-actions .separator {
+  color: var(--text-secondary, #888);
+}
+
+.column-visibility-list {
+  padding: 0.5rem 0;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.column-visibility-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.column-visibility-item:hover {
+  background: var(--bg-hover, #2a2a2a);
+}
+
+.column-visibility-item input[type="checkbox"] {
+  margin: 0 0.75rem 0 0;
+  cursor: pointer;
+}
+
+.column-visibility-item input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.column-visibility-item span {
+  font-size: 0.875rem;
+  user-select: none;
+}

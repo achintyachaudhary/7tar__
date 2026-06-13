@@ -1,0 +1,8 @@
+{
+  "name": "Goldium",
+  "private": true,
+  "scripts": {
+    "backend": "cd Backend && .venv/bin/uvicorn app.main:app --reload --port 8000",
+    "frontend": "cd frontend && npm run dev"
+  }
+}
