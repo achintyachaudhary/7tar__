@@ -77,6 +77,20 @@ start_backend() {
   PIDS+=($!)
 }
 
+wait_for_url() {
+  local url="$1"
+  local label="$2"
+  for _ in $(seq 1 60); do
+    if curl -sf "$url" >/dev/null 2>&1; then
+      echo "${label} is ready."
+      return 0
+    fi
+    sleep 1
+  done
+  echo "WARNING: ${label} did not become ready in time."
+  return 1
+}
+
 start_lm() {
   echo "Starting lm (Stock AI) on http://127.0.0.1:${LM_PORT}"
   (
@@ -101,6 +115,8 @@ ensure_frontend_deps
 ensure_postgres
 
 start_backend
+wait_for_url "http://127.0.0.1:${BACKEND_PORT}/health" "Backend"
+
 start_lm
 start_frontend
 
