@@ -149,9 +149,11 @@ def migrate_stock_universe() -> None:
             logger.info("StockUniverse already populated with %d stocks", existing_count)
             return
         
-        # Find nse_all.json cache file
-        cache_dir = Path(__file__).resolve().parents[2] / "data" / "cache"
-        nse_all_path = cache_dir / "nse_all.json"
+        # Find nse_all.json cache file (bundled under app/cache, runtime under data/cache)
+        backend_dir = Path(__file__).resolve().parents[2]
+        nse_all_path = backend_dir / "data" / "cache" / "nse_all.json"
+        if not nse_all_path.exists():
+            nse_all_path = backend_dir / "app" / "cache" / "nse_all.json"
         
         if not nse_all_path.exists():
             logger.warning("nse_all.json not found at %s, skipping StockUniverse population", nse_all_path)
